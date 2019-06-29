@@ -12,7 +12,7 @@ You can find examples on how to use Magikoopa in combination with NSMB2 here: ht
 * Run `Magikoopa` in the build directory.
 
 ### Hooks
-Hooks can be specified with hks files in a patch's working directory. The format is similar to YAML:
+Hooks can be specified with hks files in {WorkingDirectory}/source or {WorkingDirectory}/hooks. The format is similar to YAML:
 
 ```
 hook_name_1:
