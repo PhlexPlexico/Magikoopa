@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "hooks.h"
 #include "hooklinker.h"
 
@@ -183,6 +185,10 @@ PatchHook::PatchHook(HookLinker* parent, HookInfo* info)
         dataStr.replace('\t', "");
 
         m_patchData = QByteArray::fromHex(dataStr.toLatin1());
+
+        const bool reverse = info->has("reverse") && info->getBool("reverse");
+        if (reverse)
+            std::reverse(m_patchData.begin(), m_patchData.end());
     }
     else if (info->has("src") && info->has("len"))
     {
