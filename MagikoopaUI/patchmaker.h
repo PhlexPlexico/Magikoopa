@@ -46,7 +46,7 @@ private:
     void restoreFromBackup();
 
     void insert();
-    void fixExheader(quint32 newCodeSize);
+    void fixExheader(quint32 newCodeSize, bool grow_bss, const QString& dest);
     void postHook();
     void allDone();
 

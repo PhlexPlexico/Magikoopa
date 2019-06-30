@@ -299,12 +299,17 @@ void PatchMaker::insert()
     delete newCodeFile;
 
     emit updateStatus("Fixing Exheader");
-    fixExheader(loaderDataEnd + m_hookLinker.extraDataSize() - m_newCodeOffset);
+    fixExheader(loaderDataEnd + m_hookLinker.extraDataSize() - m_newCodeOffset, false, m_path + "/exheader_legacy.bin");
+    fixExheader(loaderDataEnd + m_hookLinker.extraDataSize() - m_newCodeOffset, true, m_path + "/exheader.bin");
+    postHook();
 }
 
-void PatchMaker::fixExheader(quint32 newCodeSize)
+void PatchMaker::fixExheader(quint32 newCodeSize, bool grow_bss, const QString& dest)
 {
-    Exheader exHeader(new ExternalFile(m_path + "/exheader.bin"));
+    const QString tmp_path = m_path + "/exheader_tmp.bin";
+    QFile(tmp_path).remove();
+    QFile(m_path + "/exheader.bin").copy(tmp_path);
+    Exheader exHeader(new ExternalFile(tmp_path));
 
     exHeader.data.sci.textCodeSetInfo.size = exHeader.data.sci.textCodeSetInfo.physicalRegionSize << 12;
 
@@ -312,14 +317,16 @@ void PatchMaker::fixExheader(quint32 newCodeSize)
     qDebug() << QString("BSS size: %1").arg(((exHeader.data.sci.bssSize + 0xFFF) & ~0xFFF), 8, 0x10, QChar('0')).toLatin1().data();;
     qDebug() << QString("New code size: %1").arg(((newCodeSize + 0xFFF) & ~0xFFF), 8, 0x10, QChar('0')).toLatin1().data();;
 
-    exHeader.data.sci.dataCodeSetInfo.physicalRegionSize += ((exHeader.data.sci.bssSize + 0xFFF) & ~0xFFF) >> 12 ;
-    exHeader.data.sci.dataCodeSetInfo.physicalRegionSize += ((newCodeSize + 0xFFF) & ~0xFFF) >> 12;
-    exHeader.data.sci.dataCodeSetInfo.size = exHeader.data.sci.dataCodeSetInfo.physicalRegionSize << 12;
-
-    qDebug() << QString("Final Data size: %1").arg(exHeader.data.sci.dataCodeSetInfo.physicalRegionSize << 12, 8, 0x10, QChar('0')).toLatin1().data();;
-
-    exHeader.data.sci.bssSize = 0;
-
+    if (grow_bss) {
+        exHeader.data.sci.bssSize += ((newCodeSize + 0xFFF) & ~0xFFF);
+        qDebug() << QString("New BSS size: %1").arg(((exHeader.data.sci.bssSize + 0xFFF) & ~0xFFF), 8, 0x10, QChar('0')).toLatin1().data();;
+    } else {
+        exHeader.data.sci.dataCodeSetInfo.physicalRegionSize += ((exHeader.data.sci.bssSize + 0xFFF) & ~0xFFF) >> 12 ;
+        exHeader.data.sci.dataCodeSetInfo.physicalRegionSize += ((newCodeSize + 0xFFF) & ~0xFFF) >> 12;
+        exHeader.data.sci.dataCodeSetInfo.size = exHeader.data.sci.dataCodeSetInfo.physicalRegionSize << 12;
+        qDebug() << QString("New Data size: %1").arg(exHeader.data.sci.dataCodeSetInfo.physicalRegionSize << 12, 8, 0x10, QChar('0')).toLatin1().data();
+        exHeader.data.sci.bssSize = 0;
+    }
 
     // Set ARM11 Kernel Caps
     Exheader::ACI* aci = &exHeader.data.aci1;
@@ -385,8 +392,8 @@ void PatchMaker::fixExheader(quint32 newCodeSize)
 
 
     exHeader.save();
-
-    postHook();
+    QFile(dest).remove();
+    QFile(tmp_path).rename(dest);
 }
 
 void PatchMaker::postHook()
