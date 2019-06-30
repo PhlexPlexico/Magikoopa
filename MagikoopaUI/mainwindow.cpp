@@ -21,14 +21,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
     patchMaker = new PatchMaker(this);
     connect(patchMaker, SIGNAL(setBusy(bool)), SLOT(setActionsDisabled(bool)));
+    connect(patchMaker, &PatchMaker::setBusy, this, [this](bool disabled) {
+        if (!disabled)
+            emit on_finished();
+    });
     connect(patchMaker, SIGNAL(addOutput(QString,QString,bool)), this, SLOT(appendOutput(QString,QString,bool)));
     connect(patchMaker, SIGNAL(updateStatus(QString)), ui->statusLabel, SLOT(setText(QString)));
 
     setActionsDisabled(true);
-
-    QString lastWorkingDirectory = settings->value("lastWordkingDirectory").toString();
-    if (!lastWorkingDirectory.isEmpty())
-        setWorkingDirectory(lastWorkingDirectory);
 }
 
 MainWindow::~MainWindow()
@@ -37,6 +37,13 @@ MainWindow::~MainWindow()
     delete settings;
 
     delete ui;
+}
+
+void MainWindow::loadLastWorkingDirectory()
+{
+    QString lastWorkingDirectory = settings->value("lastWordkingDirectory").toString();
+    if (!lastWorkingDirectory.isEmpty())
+        setWorkingDirectory(lastWorkingDirectory);
 }
 
 void MainWindow::setActionsDisabled(bool disabled)
@@ -135,21 +142,27 @@ void MainWindow::on_actionSet_Working_Directory_triggered()
     setWorkingDirectory(newPath);
 }
 
-void MainWindow::setWorkingDirectory(const QString& path)
+void MainWindow::setWorkingDirectory(const QString& path, bool updateSettings)
 {
     if (patchMaker->setPath(path))
     {
-        settings->setValue("lastWordkingDirectory", path);
+        if (updateSettings)
+            settings->setValue("lastWordkingDirectory", path);
         this->setWindowTitle("Magikoopa - " + patchMaker->path());
         setActionsDisabled(false);
     }
+}
+
+void MainWindow::build()
+{
+    patchMaker->makeInsert();
 }
 
 void MainWindow::on_makeInsertButton_clicked()
 {
     clearIssues();
     ui->output->clear();
-    patchMaker->makeInsert();
+    build();
 }
 
 void MainWindow::on_makeCleanButton_clicked()

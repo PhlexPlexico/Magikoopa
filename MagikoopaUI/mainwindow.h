@@ -18,6 +18,13 @@ public:
     explicit MainWindow(QWidget* parent = 0);
     ~MainWindow();
 
+    void loadLastWorkingDirectory();
+    void setWorkingDirectory(const QString &path, bool updateSettings = false);
+    void build();
+
+signals:
+    void on_finished();
+
 private slots:
     void appendOutput(const QString& catergory, const QString& text, bool showCategory);
 
@@ -45,8 +52,6 @@ private:
         Warning,
         Error
     };
-
-    void setWorkingDirectory(const QString& path);
 
     void addIssue(QString text, IssueType type, bool removeLabel = true);
     int m_issueCount;
