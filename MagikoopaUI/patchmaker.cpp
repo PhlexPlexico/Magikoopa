@@ -313,19 +313,23 @@ void PatchMaker::fixExheader(quint32 newCodeSize, bool grow_bss, const QString& 
 
     exHeader.data.sci.textCodeSetInfo.size = exHeader.data.sci.textCodeSetInfo.physicalRegionSize << 12;
 
+    qDebug() << "----- Fixing exheader -----";
     qDebug() << QString("Data size: %1").arg(exHeader.data.sci.dataCodeSetInfo.physicalRegionSize << 12, 8, 0x10, QChar('0')).toLatin1().data();;
     qDebug() << QString("BSS size: %1").arg(((exHeader.data.sci.bssSize + 0xFFF) & ~0xFFF), 8, 0x10, QChar('0')).toLatin1().data();;
     qDebug() << QString("New code size: %1").arg(((newCodeSize + 0xFFF) & ~0xFFF), 8, 0x10, QChar('0')).toLatin1().data();;
 
+    const quint32 newBssSize = m_symTable.get("__bss_end__") - m_symTable.get("__bss_start__");
+    qDebug() << QString("newcode .bss size: 0x%1").arg(newBssSize, 0, 16);
+
     if (grow_bss) {
-        exHeader.data.sci.bssSize += ((newCodeSize + 0xFFF) & ~0xFFF);
-        qDebug() << QString("New BSS size: %1").arg(((exHeader.data.sci.bssSize + 0xFFF) & ~0xFFF), 8, 0x10, QChar('0')).toLatin1().data();;
+        exHeader.data.sci.bssSize += (((newCodeSize + newBssSize) + 0xFFF) & ~0xFFF);
+        qDebug() << QString("Final BSS size: %1").arg(((exHeader.data.sci.bssSize + 0xFFF) & ~0xFFF), 8, 0x10, QChar('0')).toLatin1().data();;
     } else {
         exHeader.data.sci.dataCodeSetInfo.physicalRegionSize += ((exHeader.data.sci.bssSize + 0xFFF) & ~0xFFF) >> 12 ;
         exHeader.data.sci.dataCodeSetInfo.physicalRegionSize += ((newCodeSize + 0xFFF) & ~0xFFF) >> 12;
         exHeader.data.sci.dataCodeSetInfo.size = exHeader.data.sci.dataCodeSetInfo.physicalRegionSize << 12;
-        qDebug() << QString("New Data size: %1").arg(exHeader.data.sci.dataCodeSetInfo.physicalRegionSize << 12, 8, 0x10, QChar('0')).toLatin1().data();
-        exHeader.data.sci.bssSize = 0;
+        qDebug() << QString("Final Data size: %1").arg(exHeader.data.sci.dataCodeSetInfo.physicalRegionSize << 12, 8, 0x10, QChar('0')).toLatin1().data();
+        exHeader.data.sci.bssSize = (newBssSize + 0xFFF) & ~0xFFF;
     }
 
     // Set ARM11 Kernel Caps
