@@ -157,6 +157,8 @@ void PatchMaker::compilerDone(int exitCode)
             m_symTable.clear();
             m_symTable.load(m_path + "/newcode.sym");
 
+            const quint32 newBssSize = m_symTable.get("__bss_end__") - m_symTable.get("__bss_start__");
+
             m_hookLinker.clear();
             m_hookLinker.setSymTable(&m_symTable);
             m_hookLinker.loadHooks(m_path + "/source");
@@ -172,7 +174,7 @@ void PatchMaker::compilerDone(int exitCode)
                 << "#define NEWCODEINFO_H\n"
                 << "\n"
                 << QString("#define NEWCODE_OFFSET 0x%1\n").arg(m_newCodeOffset, 8, 0x10, QChar('0'))
-                << QString("#define NEWCODE_SIZE 0x%1\n").arg(((QFile(m_path + "/newcode.bin").size() + 0xF) & ~0xF) + m_hookLinker.extraDataSize(), 8, 0x10, QChar('0'))
+                << QString("#define NEWCODE_SIZE 0x%1\n").arg(((QFile(m_path + "/newcode.bin").size() + 0xF) & ~0xF) + newBssSize + m_hookLinker.extraDataSize(), 8, 0x10, QChar('0'))
                 << "\n"
                 << "#endif // NEWCODEINFO_H\n";
             newcodeinfoFile.close();
@@ -180,7 +182,7 @@ void PatchMaker::compilerDone(int exitCode)
             qDebug() << QString("Hook size: %1").arg(m_hookLinker.extraDataSize(), 8, 0x10, QChar('0')).toLatin1().data();
 
             QFile newcodeFile(m_path + "/newcode.bin");
-            m_loaderDataOffset = m_newCodeOffset + ((newcodeFile.size() + 0xF) & ~0xF);
+            m_loaderDataOffset = (m_symTable.get("__bss_end__") + 0xf) & ~0xf;
 
             loaderCompiler->make(m_loaderOffset, m_loaderDataOffset);
         }
@@ -242,7 +244,7 @@ void PatchMaker::insert()
     codeFile->writeData(newCode, newCodeFile->size());
     delete[] newCode;
 
-    // Clear Padding to Loader Data
+    // Clear BSS/Padding to Loader Data
     while (codeFile->pos() < loaderDataStart - 0x100000)
         codeFile->write8(0);
 
