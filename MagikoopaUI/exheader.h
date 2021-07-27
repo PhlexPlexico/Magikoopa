@@ -132,7 +132,23 @@ public:
     {
         struct
         {
-            quint8 data[0x170];
+            quint8 programID[0x8];
+            quint8 coreVersion[0x4];
+            quint8 flag1Flag2[0x2];
+            quint8 flag0[0x1];
+            quint8 priority[0x1];
+            quint8 resLimDesc[0x20];
+            struct {
+                quint8 extDataId[0x8];
+                quint8 sysSavDataId[0x8];
+                quint8 storeAccessUniqId[0x8];
+                quint8 fsAccessInfo[0x7];
+                quint8 otherAttrs[0x1];
+            } storageInfo;
+            quint8 svcAcsCtrl[0x100];
+            quint8 extSvcCtrl[0x10];
+            quint8 reserve[0xF];
+            quint8 resLimCat[0x1];
         } arm11systemCaps;
 
         struct

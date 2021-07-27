@@ -337,6 +337,8 @@ void PatchMaker::fixExheader(quint32 newCodeSize, bool grow_bss, const QString& 
     // Set ARM11 Kernel Caps
     Exheader::ACI* aci = &exHeader.data.aci1;
 
+    // Allow SD Card access. Little endian so we want 0.
+    aci->arm11systemCaps.storageInfo.fsAccessInfo[0] |= 0x80;
     QList<quint32> otherCaps;
 
     bool svcs[0x100];
